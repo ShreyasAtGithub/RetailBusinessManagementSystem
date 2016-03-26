@@ -1,0 +1,458 @@
+package action;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+
+import oracle.jdbc.OracleTypes;
+import oracle.jdbc.pool.OracleDataSource;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import bean.Employees;
+import bean.MonthlySale;
+import bean.Customers;
+import bean.Products;
+import bean.Purchases;
+import bean.Suppliers;
+import bean.Supply;
+
+ public class MainServlet extends javax.servlet.http.HttpServlet implements javax.servlet.Servlet {
+   static final long serialVersionUID = 1L;
+   
+  
+	public MainServlet() {
+		super();/*declares ActionClass as the Superclass*/
+	}   	
+	
+	//Declaring connection as a global variable
+	Connection conn = null;
+	
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		PrintWriter out = response.getWriter();
+		  response.setContentType("text/html");
+		  out.print("basic.html");	
+	}  	
+	
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		
+		// Doing all the validations, data connection, data fetching and jsp forward in do post method
+		
+		//Defining Database credentials
+		OracleDataSource ds = null;
+		try {
+			ds = new oracle.jdbc.pool.OracleDataSource();
+			ds.setURL("jdbc:oracle:thin:@castor.cc.binghamton.edu:1521:acad111");
+			conn = ds.getConnection("smn1", "abhiYV10");
+		}catch (SQLException e) {
+			e.printStackTrace();
+		}
+	    	
+		response.setContentType("text/html");
+
+		//JSP will pass a hidden variable each time it is submitted.
+		//Comparing the value of hidden variable and deciding the operation to perform
+		String page = request.getParameter("selectedPage");
+		System.out.println(" page value is "+page);
+		
+		
+//		If the hidden variable value is display tuples, then CALL DISPLAY_TUPLES PROCEDURE 
+		if(page.equals("displaytuples"))/*checks the page value for display tuples*/
+		{
+			String tname = request.getParameter("tablename");
+			System.out.println("table name selected is : "+tname);
+			
+			//If the value from the drop down in front end is 1, then get data from Employees Table
+			if(tname.equalsIgnoreCase("1")){
+				
+				try {
+					ResultSet rs;
+					ArrayList<Employees> empList = new ArrayList<Employees>();
+					CallableStatement cs = conn.prepareCall("begin DISPLAY_TUPLES(:1,:2); end;");
+					cs.setString(1, tname);
+					cs.registerOutParameter(2, OracleTypes.CURSOR);
+					cs.execute();
+			        rs = (ResultSet)cs.getObject(2);
+			        
+			        while(rs.next()){
+			        	System.out.println(""+rs.getString("EID"));
+			        	System.out.println(""+rs.getString("ENAME"));
+			        	System.out.println(""+rs.getString("TELEPHONE#"));
+			        	
+			        	Employees emp = new Employees();
+			        	
+			        	emp.setEid(rs.getString("EID"));
+			        	emp.setEname(rs.getString("ENAME"));
+			        	emp.setTelephone(rs.getString("TELEPHONE#"));
+			        	
+			        	empList.add(emp);
+			        }
+			        request.setAttribute("employeeInfo", empList);
+			        request.getRequestDispatcher("viewEmployees.jsp").forward(request, response);
+			        cs.close();
+					
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			else if(tname.equalsIgnoreCase("2")){
+				try {
+					
+					
+					//If the value from the drop down in front end is 2, then get Data from Customers Table
+					ArrayList<Customers> custList = new ArrayList<Customers>();
+					ResultSet rs;
+					CallableStatement cs = conn.prepareCall("begin DISPLAY_TUPLES(:1,:2); end;");
+					cs.setString(1, tname);
+					cs.registerOutParameter(2, OracleTypes.CURSOR);
+					cs.execute();
+			        rs = (ResultSet)cs.getObject(2);
+			        
+			        while(rs.next()){
+			        	Customers cust = new Customers();
+			        	
+			        	cust.setCid(rs.getString("CID"));
+			        	cust.setCname(rs.getString("CNAME"));
+			        	cust.setTelephone(rs.getString("TELEPHONE#"));
+			        	cust.setVisits_made(rs.getString("VISITS_MADE"));
+			        	cust.setLast_visit_made(rs.getString("LAST_VISIT_DATE"));
+			        	
+			        	custList.add(cust);
+			        }
+			        
+			        request.setAttribute("customerInfo", custList);
+			        request.getRequestDispatcher("viewCustomers.jsp").forward(request, response);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			else if(tname.equalsIgnoreCase("3")){
+				
+				//If the value from the drop down in front end is 3, then get data from Products Table
+				try {
+					
+					ArrayList<Products> prodList = new ArrayList<Products>();
+					ResultSet rs;
+					CallableStatement cs = conn.prepareCall("begin DISPLAY_TUPLES(:1,:2); end;");
+					cs.setString(1, tname);
+					cs.registerOutParameter(2, OracleTypes.CURSOR);
+					cs.execute();
+			        rs = (ResultSet)cs.getObject(2);
+			        
+			        while(rs.next()){
+			        
+			        	Products prod = new Products();
+			        	prod.setPid(rs.getString("PID"));
+			        	prod.setPname(rs.getString("PNAME"));
+			        	prod.setQoh(rs.getString("QOH"));
+			        	prod.setQoh_threshold(rs.getString("QOH_THRESHOLD"));
+			        	prod.setOriginal_price(rs.getString("ORIGINAL_PRICE"));
+			        	prod.setDiscnt_rate(rs.getString("DISCNT_RATE"));
+			        	
+			        	prodList.add(prod);
+			        }
+			        request.setAttribute("productInfo", prodList);
+			        request.getRequestDispatcher("viewProducts.jsp").forward(request, response);
+			        
+				 }catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			else if(tname.equalsIgnoreCase("4")){
+				
+				//If the value from the drop down in front end is 4, then get data from Purchases Table
+				try {
+					
+					ArrayList<Purchases> purchList = new ArrayList<Purchases>();
+					ResultSet rs;
+					CallableStatement cs = conn.prepareCall("begin DISPLAY_TUPLES(:1,:2); end;");
+					cs.setString(1, tname);
+					cs.registerOutParameter(2, OracleTypes.CURSOR);
+					cs.execute();
+			        rs = (ResultSet)cs.getObject(2);
+			        
+			        while(rs.next()){
+			        	
+			        	Purchases purchases = new Purchases();
+			        	
+			        	purchases.setPur(rs.getString("PUR#"));
+			        	purchases.setEid(rs.getString("EID"));
+			        	purchases.setPid(rs.getString("PID"));
+			        	purchases.setCid(rs.getString("CID"));
+			        	purchases.setQty(rs.getString("QTY"));
+			        	purchases.setPtime(rs.getString("PTIME"));
+			        	purchases.setTotal_price(rs.getString("TOTAL_PRICE"));
+			        	
+			        	purchList.add(purchases);
+			        }
+			        request.setAttribute("purchaseInfo", purchList);
+			        request.getRequestDispatcher("viewPurchases.jsp").forward(request, response);
+			        
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			else if(tname.equalsIgnoreCase("5")){
+				
+				//If the value from the drop down in front end is 5, then get data from Suppliers Table
+				try {
+					
+					ArrayList<Suppliers> suppliersList = new ArrayList<Suppliers>();
+					
+					ResultSet rs;
+					CallableStatement cs = conn.prepareCall("begin DISPLAY_TUPLES(:1,:2); end;");
+					cs.setString(1, tname);
+					cs.registerOutParameter(2, OracleTypes.CURSOR);
+					cs.execute();
+			        rs = (ResultSet)cs.getObject(2);
+			        
+			        while(rs.next()){
+			        	
+			        	Suppliers suppliers = new Suppliers(); 
+			        	suppliers.setSid(rs.getString("SID"));
+			        	suppliers.setSname(rs.getString("SNAME"));
+			        	suppliers.setCity(rs.getString("CITY"));
+			        	suppliers.setTelephone(rs.getString("TELEPHONE#"));
+			        	
+			        	suppliersList.add(suppliers);
+			        	
+			        }
+					request.setAttribute("suppliersInfo", suppliersList);
+			        request.getRequestDispatcher("viewSuppliers.jsp").forward(request, response);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			else if(tname.equalsIgnoreCase("6")){
+				
+				//If the value from the drop down in front end is 6, then get data from Supply Table
+				
+				try {
+					
+					ArrayList<Supply> supplyList = new ArrayList<Supply>();
+					ResultSet rs;
+					CallableStatement cs = conn.prepareCall("begin DISPLAY_TUPLES(:1,:2); end;");
+					cs.setString(1, tname);
+					cs.registerOutParameter(2, OracleTypes.CURSOR);
+					cs.execute();
+			        rs = (ResultSet)cs.getObject(2);
+			        
+			        while(rs.next()){
+			        	
+			        	Supply supply = new Supply();
+			        	supply.setSup(rs.getString("SUP#"));
+			        	supply.setPid(rs.getString("PID"));
+			        	supply.setSid(rs.getString("SID"));
+			        	supply.setSdate(rs.getString("SDATE"));;
+			        	supply.setQuantity(rs.getString("QUANTITY"));
+			        	
+					    supplyList.add(supply);
+			        }
+					request.setAttribute("supplyInfo", supplyList);
+			        request.getRequestDispatcher("viewSupply.jsp").forward(request, response);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		
+		//Get the monthly sale info, if the hidden variable "selectedpage" value is : saleInfo
+		else if(page.equalsIgnoreCase("saleInfo")){
+			
+			//Getting the pid entered by the user through the request object
+			String pidin = (String) request.getParameter("pid");
+			System.out.println("The product id entered is : "+pidin);
+			
+			ArrayList<MonthlySale> monthSaleList = new ArrayList<MonthlySale>();
+			ResultSet rs;
+			CallableStatement cs;
+			try {
+				cs = conn.prepareCall("begin MONTHLY_SALE_REPORT(:1,:2,:3); end;");
+				
+//				based on pid, getting the monthly sale info from the procedure MONTHLY_SALE_REPORT
+				cs.setString(1, pidin);
+				cs.registerOutParameter(2, Types.VARCHAR);
+				cs.registerOutParameter(3, OracleTypes.CURSOR);
+				cs.execute();
+				
+				String pidExists = cs.getString(2);
+		        rs = (ResultSet)cs.getObject(3);
+		        
+		        if(pidExists.equalsIgnoreCase("YES")){
+		        while(rs.next()){
+		        	MonthlySale sale = new MonthlySale();
+		        	
+		        	sale.setProdName(rs.getString("PROD_NAME"));
+		        	sale.setPurMonth(rs.getString("PURCHASE_MONTH"));
+		        	sale.setPurYear(rs.getString("PURCHASE_YEAR"));
+		        	sale.setTotalQty(rs.getString("TOTAL_QTY"));
+		        	sale.setTotalPrice(rs.getString("TOTAL_PRICE"));
+		        	sale.setAvgSalePrice(rs.getString("AVG_SALE_PRICE"));
+		        	
+		        	monthSaleList.add(sale);
+		        }
+		        request.setAttribute("saleInfo", monthSaleList);
+		        request.getRequestDispatcher("viewSaleInfo.jsp").forward(request, response);
+		        }
+		        else{
+		        	request.getRequestDispatcher("pidNotExists.jsp").forward(request, response);
+		        }
+		        
+			  } catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}	
+		
+		//Add a new product to the products table, if the hidden variable value is : addProduct
+		else if(page.equalsIgnoreCase("addProduct")){
+			
+			String pid = (String) request.getParameter("pid");
+			String pname = (String) request.getParameter("pname");
+			String qoh = (String) request.getParameter("qoh");
+			String qohthr = (String) request.getParameter("qohthr");
+			String origprice = (String) request.getParameter("origprice");
+			String discnt = (String) request.getParameter("discnt");
+			
+			Integer qohn = Integer.parseInt(qoh);
+			Integer qohthrn = Integer.parseInt(qohthr);
+			Integer origpricen = Integer.parseInt(origprice);
+			Float discntn = Float.parseFloat(discnt);
+			
+			CallableStatement cs;
+			String rs;
+			
+			try {
+				
+				//Calling ADD_PRODUCT procedure, which adds new product to the products table
+				cs = conn.prepareCall("begin ADD_PRODUCT(:1,:2,:3,:4,:5,:6,:7); end;");
+				
+				cs.setString(1, pid);
+				cs.setString(2, pname);
+				cs.setInt(3, qohn);
+				cs.setInt(4, qohthrn);
+				cs.setInt(5, origpricen);
+				cs.setFloat(6, discntn);
+				cs.registerOutParameter(7, Types.VARCHAR);
+				
+				cs.execute();
+				
+				rs = cs.getString(7);
+
+				//re-routing based on the result from the ADD_PRODUCT procedure
+				if(rs.equalsIgnoreCase("SUCCESS")){
+		        
+				request.setAttribute("pname", pname);
+		        request.getRequestDispatcher("addProdSuccess.jsp").forward(request, response);
+				}
+				else{
+				 request.getRequestDispatcher("addProdFailure.jsp").forward(request, response);
+				}
+		        
+			  } catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}	
+		
+		
+		//Implementing product purchase logic, if the hidden variable "selectedpage" value is : purchaseprod
+		else if(page.equalsIgnoreCase("purchaseprod")){
+			
+			// Setting the input variables for the PROCEDURE "ADD_PURCHASE"
+			String eidin = (String) request.getParameter("eid");
+			String pidin = (String) request.getParameter("pid");
+			String cidin = (String) request.getParameter("cid");
+			String qtyin = (String) request.getParameter("qty");
+			Integer qtyin2 = Integer.parseInt(qtyin);
+			
+			String rs1, rs2, rs4, rs6;
+			Integer rs3, rs5;
+			
+			CallableStatement cs, cs2;
+			try {
+				
+				System.out.println("eid "+eidin);
+				System.out.println("pidin "+pidin);
+				System.out.println("cidin "+cidin);
+				System.out.println("qtyin "+qtyin);
+				System.out.println("qtyin2 "+qtyin2);
+				
+				cs = conn.prepareCall("begin ADD_PURCHASE(:1,:2,:3,:4,:5,:6,:7,:8); end;");
+				
+				cs.setString(1,eidin);
+				cs.setString(2, pidin);
+				cs.setString(3, cidin);
+				cs.setInt(4, qtyin2);
+				cs.registerOutParameter(5, Types.VARCHAR);
+				cs.registerOutParameter(6, Types.VARCHAR);
+				cs.registerOutParameter(7, Types.VARCHAR);
+				cs.registerOutParameter(8, Types.VARCHAR);
+				cs.execute();
+		        rs1 = (String)cs.getObject(5);
+		        rs2 = (String)cs.getObject(6);
+		        rs3 = cs.getInt(7);
+		        rs4 = rs3.toString();
+		        rs6 = cs.getString(8);
+		        
+		        // displaying success /failure ,messages based on the output from the procedure ADD_PURCHASE
+		        if(rs1.equalsIgnoreCase("FAILURE2")){
+		        	System.out.println("inside failure 2");
+		        	response.sendRedirect("purchaseFailure.jsp");
+		        }
+		        else if(rs1.equalsIgnoreCase("SUCCESS") && rs2.equalsIgnoreCase("ABOVE")
+		        		&& (rs3 == 0)){
+		        	System.out.println("insdie success and above");
+		        	response.sendRedirect("purchaseSuccess.jsp");
+		        }
+		        else if(rs1.equalsIgnoreCase("SUCCESS") && rs2.equalsIgnoreCase("BELOW")
+		        		&& (rs3 > 0)){
+		        	
+		        	try {
+		        		
+		        		// Automatically Placing the new Supply order if QOH goes below threshold level
+						cs2 = conn.prepareCall("begin RECORD_PROD_SUPPLY(:1,:2,:3, :4); end;");
+						
+						System.out.println("calling RECORD_PROD_SUPPLY");
+						cs2.setString(1, pidin);
+						cs2.setInt(2, rs3);
+						cs2.registerOutParameter(3, Types.VARCHAR);
+						cs2.registerOutParameter(4, Types.INTEGER);
+						
+						cs2.execute();
+				        String rs10 = cs2.getString(3); 
+				        Integer newqohupadted = cs2.getInt(4);
+				        
+				        if(rs10.equalsIgnoreCase("SUCCESS")){
+				        System.out.println("inside RECORD_PROD_SUPPLY success");
+				        System.out.println("new qoh is :"+rs3);
+				        
+				        //Setting the new value of QOH to request attribute to display at the front end
+				        request.setAttribute("newQoh", newqohupadted);
+				        request.getRequestDispatcher("orderSupply.jsp").forward(request, response);
+				        }
+				        else{
+				        	System.out.println("inside RECORD_PROD_SUPPLY failure");
+				        	response.sendRedirect("orderFailure.jsp");
+				        }
+					  } catch (SQLException e) {
+						e.printStackTrace();
+					}
+		        }
+		        
+			  } catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+ }
